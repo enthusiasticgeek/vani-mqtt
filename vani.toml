@@ -1,10 +1,10 @@
 [package]
 name        = "mqtt"
-version     = "0.1.0"
+version     = "0.2.0"
 entry       = "src/lib.vani"
 authors     = "enthusiasticgeek"
 license     = "Apache-2.0"
-description = "Minimal MQTT v3.1.1 build+parse (CONNECT/CONNACK, PUBLISH/SUBSCRIBE/SUBACK QoS 0 only, PINGREQ/PINGRESP, DISCONNECT -- no QoS 1/2, no retained/will messages, no username/password auth), pure vani, hardware-agnostic and heap-free. Operates on a standalone [u8;512] buffer, same bounded-message precedent as DHCP/HTTP. Transport-agnostic -- pairs with an existing TLS 1.3 stack or plain TCP."
+description = "Minimal MQTT v3.1.1 build+parse (CONNECT/CONNACK, PUBLISH/SUBSCRIBE/SUBACK at QoS 0/1/2 -- PUBACK for QoS 1, full PUBREC/PUBREL/PUBCOMP handshake for QoS 2 -- PINGREQ/PINGRESP, DISCONNECT; no retained/will messages, no username/password auth), pure vani, hardware-agnostic and heap-free. Operates on a standalone [u8;512] buffer, same bounded-message precedent as DHCP/HTTP. Transport-agnostic -- pairs with an existing TLS 1.3 stack or plain TCP."
 registry    = "kosh"
 
 [deps]
