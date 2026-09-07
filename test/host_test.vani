@@ -1,0 +1,6 @@
+use "../src/lib.vani";
+
+fn main() -> i64 {
+  assert(mqtt_self_test() == 1);
+  return 0;
+}
