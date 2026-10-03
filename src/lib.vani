@@ -26,26 +26,58 @@
 // generification effort. Pairs with an existing TLS 1.3 stack (MQTT
 // over TLS, the common "MQTTS" deployment) or plain TCP.
 
+#[bounded_stack(bytes=1056)]
+#[wcet(cycles=1033)]
 fn mqtt_zero512_bytes() -> [u8; 512] {
   let out: [u8; 512] = [0 as u8; 512];
   return out;
 }
 
+#[bounded_stack(bytes=40)]
+#[wcet(cycles=6)]
 fn mqtt_packet_type_connect() -> i64 { return 1; }
+#[bounded_stack(bytes=40)]
+#[wcet(cycles=6)]
 fn mqtt_packet_type_connack() -> i64 { return 2; }
+#[bounded_stack(bytes=40)]
+#[wcet(cycles=6)]
 fn mqtt_packet_type_publish() -> i64 { return 3; }
+#[bounded_stack(bytes=40)]
+#[wcet(cycles=6)]
 fn mqtt_packet_type_puback() -> i64 { return 4; }
+#[bounded_stack(bytes=40)]
+#[wcet(cycles=6)]
 fn mqtt_packet_type_pubrec() -> i64 { return 5; }
+#[bounded_stack(bytes=40)]
+#[wcet(cycles=6)]
 fn mqtt_packet_type_pubrel() -> i64 { return 6; }
+#[bounded_stack(bytes=40)]
+#[wcet(cycles=6)]
 fn mqtt_packet_type_pubcomp() -> i64 { return 7; }
+#[bounded_stack(bytes=40)]
+#[wcet(cycles=6)]
 fn mqtt_packet_type_subscribe() -> i64 { return 8; }
+#[bounded_stack(bytes=40)]
+#[wcet(cycles=6)]
 fn mqtt_packet_type_suback() -> i64 { return 9; }
+#[bounded_stack(bytes=40)]
+#[wcet(cycles=6)]
 fn mqtt_packet_type_pingreq() -> i64 { return 12; }
+#[bounded_stack(bytes=40)]
+#[wcet(cycles=6)]
 fn mqtt_packet_type_pingresp() -> i64 { return 13; }
+#[bounded_stack(bytes=40)]
+#[wcet(cycles=6)]
 fn mqtt_packet_type_disconnect() -> i64 { return 14; }
 
+#[bounded_stack(bytes=40)]
+#[wcet(cycles=6)]
 fn mqtt_connack_accepted() -> i64 { return 0; }
+#[bounded_stack(bytes=40)]
+#[wcet(cycles=6)]
 fn mqtt_connack_refused_protocol_version() -> i64 { return 1; }
+#[bounded_stack(bytes=40)]
+#[wcet(cycles=6)]
 fn mqtt_connack_refused_identifier_rejected() -> i64 { return 2; }
 
 // ---------------------------------------------------------------
@@ -57,18 +89,23 @@ fn mqtt_connack_refused_identifier_rejected() -> i64 { return 2; }
 // null terminator).
 // ---------------------------------------------------------------
 
+#[bounded_stack(bytes=64)]
+#[wcet(cycles=39)]
 fn mqtt_write_u16(buf: mut ref [u8; 512], pos: i64, value: i64) -> i64 {
   buf[pos] = ((value >> 8) & 255) as u8;
   buf[pos + 1] = (value & 255) as u8;
   return pos + 2;
 }
 
+#[bounded_stack(bytes=72)]
+#[wcet(cycles=35)]
 fn mqtt_read_u16(buf: ref [u8; 512], pos: i64) -> i64 {
   let hi: i64 = buf[pos] as i64;
   let lo: i64 = buf[pos + 1] as i64;
   return (hi << 8) | lo;
 }
 
+#[bounded_stack(bytes=160)]
 fn mqtt_write_string(buf: mut ref [u8; 512], pos: i64, s: Str) -> i64 {
   let str_len: i64 = str_len_bytes(s);
   let next: i64 = mqtt_write_u16(buf, pos, str_len);
@@ -82,6 +119,8 @@ fn mqtt_write_string(buf: mut ref [u8; 512], pos: i64, s: Str) -> i64 {
 
 struct MqttSpan { start: i64, span_len: i64 }
 
+#[bounded_stack(bytes=160)]
+#[wcet(cycles=58)]
 fn mqtt_read_string_span(buf: ref [u8; 512], pos: i64) -> MqttSpan {
   let str_len: i64 = mqtt_read_u16(buf, pos);
   return MqttSpan { start: pos + 2, span_len: str_len };
@@ -94,6 +133,7 @@ fn mqtt_read_string_span(buf: ref [u8; 512], pos: i64) -> MqttSpan {
 // covers every real message this package ever builds, but the real
 // multi-byte decode is implemented anyway for correctness against any
 // peer that might send a larger one).
+#[bounded_stack(bytes=120)]
 fn mqtt_encode_remaining_length(buf: mut ref [u8; 512], pos: i64, value: i64) -> i64 {
   let remaining: i64 = value;
   let p: i64 = pos;
@@ -114,6 +154,7 @@ fn mqtt_encode_remaining_length(buf: mut ref [u8; 512], pos: i64, value: i64) ->
 
 struct MqttRemLenResult { value: i64, next_pos: i64 }
 
+#[bounded_stack(bytes=200)]
 fn mqtt_decode_remaining_length(buf: ref [u8; 512], pos: i64) -> MqttRemLenResult {
   let multiplier: i64 = 1;
   let value: i64 = 0;
@@ -138,6 +179,7 @@ fn mqtt_decode_remaining_length(buf: ref [u8; 512], pos: i64) -> MqttRemLenResul
 
 struct MqttFixedHeader { packet_type: i64, flags: i64, remaining_length: i64, variable_header_start: i64 }
 
+#[bounded_stack(bytes=328)]
 fn mqtt_parse_fixed_header(buf: ref [u8; 512]) -> MqttFixedHeader {
   let byte0: i64 = buf[0] as i64;
   let packet_type: i64 = (byte0 >> 4) & 15;
@@ -155,6 +197,7 @@ fn mqtt_parse_fixed_header(buf: ref [u8; 512]) -> MqttFixedHeader {
 // password -- this package's own scope), keep-alive, and the client
 // ID (this package's own scope excludes Will/username/password
 // payload fields entirely, matching the connect flags above).
+#[bounded_stack(bytes=1704)]
 fn mqtt_build_connect(buf: mut ref [u8; 512], client_id: Str, keep_alive: i64) -> i64 {
   let var_payload: [u8; 512] = mqtt_zero512_bytes();
   let pos: i64 = 0;
@@ -178,6 +221,7 @@ fn mqtt_build_connect(buf: mut ref [u8; 512], client_id: Str, keep_alive: i64) -
 
 struct MqttConnectResult { ok: i64, client_id: MqttSpan, keep_alive: i64 }
 
+#[bounded_stack(bytes=464)]
 fn mqtt_parse_connect(buf: ref [u8; 512], variable_header_start: i64) -> MqttConnectResult {
   let name_span: MqttSpan = mqtt_read_string_span(buf, variable_header_start);
   if name_span.span_len != 4 {
@@ -205,6 +249,7 @@ fn mqtt_parse_connect(buf: ref [u8; 512], variable_header_start: i64) -> MqttCon
   return MqttConnectResult { ok: 1, client_id: client_id_span, keep_alive: keep_alive };
 }
 
+#[bounded_stack(bytes=192)]
 fn mqtt_build_connack(buf: mut ref [u8; 512], session_present: i64, return_code: i64) -> i64 {
   buf[0] = ((mqtt_packet_type_connack() << 4) & 255) as u8;
   let header_end: i64 = mqtt_encode_remaining_length(buf, 1, 2);
@@ -215,6 +260,8 @@ fn mqtt_build_connack(buf: mut ref [u8; 512], session_present: i64, return_code:
 
 struct MqttConnackResult { session_present: i64, return_code: i64 }
 
+#[bounded_stack(bytes=96)]
+#[wcet(cycles=34)]
 fn mqtt_parse_connack(buf: ref [u8; 512], variable_header_start: i64) -> MqttConnackResult {
   let flags: i64 = buf[variable_header_start] as i64;
   let return_code: i64 = buf[variable_header_start + 1] as i64;
@@ -228,12 +275,20 @@ fn mqtt_parse_connack(buf: ref [u8; 512], variable_header_start: i64) -> MqttCon
 // PUBLISH's own fixed-header flags byte (section 3.3.1): bit 3 = DUP,
 // bits 2-1 = QoS, bit 0 = RETAIN. QoS 0 carries no packet identifier
 // at all (fire-and-forget); QoS 1/2 both do.
+#[bounded_stack(bytes=64)]
+#[wcet(cycles=42)]
 fn mqtt_publish_flags_byte(qos: i64, dup_flag: i64, retain_flag: i64) -> i64 {
   return ((dup_flag & 1) << 3) | ((qos & 3) << 1) | (retain_flag & 1);
 }
 
+#[bounded_stack(bytes=48)]
+#[wcet(cycles=15)]
 fn mqtt_publish_qos_from_flags(flags: i64) -> i64 { return (flags >> 1) & 3; }
+#[bounded_stack(bytes=48)]
+#[wcet(cycles=15)]
 fn mqtt_publish_dup_from_flags(flags: i64) -> i64 { return (flags >> 3) & 1; }
+#[bounded_stack(bytes=48)]
+#[wcet(cycles=12)]
 fn mqtt_publish_retain_from_flags(flags: i64) -> i64 { return flags & 1; }
 
 // `packet_id` is ignored for QoS 0 (pass any value, e.g. 0 -- the
@@ -242,6 +297,7 @@ fn mqtt_publish_retain_from_flags(flags: i64) -> i64 { return flags & 1; }
 // payload bytes immediately after the returned total length
 // themselves (matching http_build_request's own body-append
 // convention).
+#[bounded_stack(bytes=304)]
 fn mqtt_build_publish(buf: mut ref [u8; 512], topic: Str, qos: i64, packet_id: i64, dup_flag: i64, retain_flag: i64, payload_len: i64) -> i64 {
   let topic_len: i64 = str_len_bytes(topic);
   let has_packet_id: i64 = if qos > 0 { 1 } else { 0 };
@@ -262,6 +318,8 @@ struct MqttPublishResult { topic: MqttSpan, packet_id: i64, payload_start: i64, 
 // is the one packet type in this package whose variable-header shape
 // depends on a fixed-header field, so the caller threads it through
 // rather than this function re-deriving it from a raw flags byte.
+#[bounded_stack(bytes=344)]
+#[wcet(cycles=180)]
 fn mqtt_parse_publish(buf: ref [u8; 512], variable_header_start: i64, remaining_length: i64, fixed_header_end: i64, qos: i64) -> MqttPublishResult {
   let topic_span: MqttSpan = mqtt_read_string_span(buf, variable_header_start);
   let after_topic: i64 = topic_span.start + topic_span.span_len;
@@ -284,42 +342,54 @@ fn mqtt_parse_publish(buf: ref [u8; 512], variable_header_start: i64, remaining_
 // fixed header has).
 // ---------------------------------------------------------------
 
+#[bounded_stack(bytes=184)]
 fn mqtt_build_puback(buf: mut ref [u8; 512], packet_id: i64) -> i64 {
   buf[0] = ((mqtt_packet_type_puback() << 4) & 255) as u8;
   let header_end: i64 = mqtt_encode_remaining_length(buf, 1, 2);
   return mqtt_write_u16(buf, header_end, packet_id);
 }
 
+#[bounded_stack(bytes=128)]
+#[wcet(cycles=47)]
 fn mqtt_parse_puback(buf: ref [u8; 512], variable_header_start: i64) -> i64 {
   return mqtt_read_u16(buf, variable_header_start);
 }
 
+#[bounded_stack(bytes=184)]
 fn mqtt_build_pubrec(buf: mut ref [u8; 512], packet_id: i64) -> i64 {
   buf[0] = ((mqtt_packet_type_pubrec() << 4) & 255) as u8;
   let header_end: i64 = mqtt_encode_remaining_length(buf, 1, 2);
   return mqtt_write_u16(buf, header_end, packet_id);
 }
 
+#[bounded_stack(bytes=128)]
+#[wcet(cycles=47)]
 fn mqtt_parse_pubrec(buf: ref [u8; 512], variable_header_start: i64) -> i64 {
   return mqtt_read_u16(buf, variable_header_start);
 }
 
+#[bounded_stack(bytes=184)]
 fn mqtt_build_pubrel(buf: mut ref [u8; 512], packet_id: i64) -> i64 {
   buf[0] = (((mqtt_packet_type_pubrel() << 4) | 2) & 255) as u8; // flags=0010, required by spec
   let header_end: i64 = mqtt_encode_remaining_length(buf, 1, 2);
   return mqtt_write_u16(buf, header_end, packet_id);
 }
 
+#[bounded_stack(bytes=128)]
+#[wcet(cycles=47)]
 fn mqtt_parse_pubrel(buf: ref [u8; 512], variable_header_start: i64) -> i64 {
   return mqtt_read_u16(buf, variable_header_start);
 }
 
+#[bounded_stack(bytes=184)]
 fn mqtt_build_pubcomp(buf: mut ref [u8; 512], packet_id: i64) -> i64 {
   buf[0] = ((mqtt_packet_type_pubcomp() << 4) & 255) as u8;
   let header_end: i64 = mqtt_encode_remaining_length(buf, 1, 2);
   return mqtt_write_u16(buf, header_end, packet_id);
 }
 
+#[bounded_stack(bytes=128)]
+#[wcet(cycles=47)]
 fn mqtt_parse_pubcomp(buf: ref [u8; 512], variable_header_start: i64) -> i64 {
   return mqtt_read_u16(buf, variable_header_start);
 }
@@ -327,6 +397,7 @@ fn mqtt_parse_pubcomp(buf: ref [u8; 512], variable_header_start: i64) -> i64 {
 // One topic filter, QoS byte follows (this package's own scope: a
 // single filter per SUBSCRIBE, not the multi-filter list the real
 // spec allows).
+#[bounded_stack(bytes=272)]
 fn mqtt_build_subscribe(buf: mut ref [u8; 512], packet_id: i64, topic_filter: Str, qos: i64) -> i64 {
   let topic_len: i64 = str_len_bytes(topic_filter);
   let remaining: i64 = 2 + 2 + topic_len + 1;
@@ -340,6 +411,8 @@ fn mqtt_build_subscribe(buf: mut ref [u8; 512], packet_id: i64, topic_filter: St
 
 struct MqttSubscribeResult { packet_id: i64, topic: MqttSpan, qos: i64 }
 
+#[bounded_stack(bytes=288)]
+#[wcet(cycles=147)]
 fn mqtt_parse_subscribe(buf: ref [u8; 512], variable_header_start: i64) -> MqttSubscribeResult {
   let packet_id: i64 = mqtt_read_u16(buf, variable_header_start);
   let topic_span: MqttSpan = mqtt_read_string_span(buf, variable_header_start + 2);
@@ -349,6 +422,7 @@ fn mqtt_parse_subscribe(buf: ref [u8; 512], variable_header_start: i64) -> MqttS
 
 // One granted-QoS byte (this package's own scope: matching
 // `mqtt_build_subscribe`'s own single-filter scope).
+#[bounded_stack(bytes=200)]
 fn mqtt_build_suback(buf: mut ref [u8; 512], packet_id: i64, granted_qos: i64) -> i64 {
   buf[0] = ((mqtt_packet_type_suback() << 4) & 255) as u8;
   let header_end: i64 = mqtt_encode_remaining_length(buf, 1, 3);
@@ -359,6 +433,8 @@ fn mqtt_build_suback(buf: mut ref [u8; 512], packet_id: i64, granted_qos: i64) -
 
 struct MqttSubackResult { packet_id: i64, granted_qos: i64 }
 
+#[bounded_stack(bytes=168)]
+#[wcet(cycles=65)]
 fn mqtt_parse_suback(buf: ref [u8; 512], variable_header_start: i64) -> MqttSubackResult {
   let packet_id: i64 = mqtt_read_u16(buf, variable_header_start);
   let granted_qos: i64 = buf[variable_header_start + 2] as i64;
@@ -370,18 +446,24 @@ fn mqtt_parse_suback(buf: ref [u8; 512], variable_header_start: i64) -> MqttSuba
 // length always 0.
 // ---------------------------------------------------------------
 
+#[bounded_stack(bytes=88)]
+#[wcet(cycles=37)]
 fn mqtt_build_pingreq(buf: mut ref [u8; 512]) -> i64 {
   buf[0] = ((mqtt_packet_type_pingreq() << 4) & 255) as u8;
   buf[1] = 0 as u8;
   return 2;
 }
 
+#[bounded_stack(bytes=88)]
+#[wcet(cycles=37)]
 fn mqtt_build_pingresp(buf: mut ref [u8; 512]) -> i64 {
   buf[0] = ((mqtt_packet_type_pingresp() << 4) & 255) as u8;
   buf[1] = 0 as u8;
   return 2;
 }
 
+#[bounded_stack(bytes=88)]
+#[wcet(cycles=37)]
 fn mqtt_build_disconnect(buf: mut ref [u8; 512]) -> i64 {
   buf[0] = ((mqtt_packet_type_disconnect() << 4) & 255) as u8;
   buf[1] = 0 as u8;
@@ -393,6 +475,7 @@ fn mqtt_build_disconnect(buf: mut ref [u8; 512]) -> i64 {
 // wire-format codec (a real broker/client integration test then
 // layers real TCP/TLS transport on top, the same relationship http's
 // own self-test has to httpecho).
+#[bounded_stack(bytes=10696)]
 fn mqtt_self_test() -> i64 {
   let ok: i64 = 1;
 
